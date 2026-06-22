@@ -16,6 +16,7 @@ export type Applicant = {
   volunteeringExperience: string | null;
   linkedinUrl: string | null;
   dataQualityFlags: string[];
+  assignedReviewerId: string | null;
 };
 
 export type Reviewer = {
@@ -28,7 +29,6 @@ export type Review = {
   reviewerId: string;
   decision: Decision;
   score: number | null;
-  notes: string | null;
   updatedAt: string | null;
 };
 

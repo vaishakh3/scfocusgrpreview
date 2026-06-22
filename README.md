@@ -6,7 +6,8 @@ Review dashboard for IEEE Sensors Council Kerala Chapter Software Focus Group ap
 
 - Loads applicant data from Supabase through server-side Next.js API routes
 - Falls back to anonymized sample data when Supabase env vars are not set
-- Lets reviewers filter applicants, shortlist, waitlist, reject, score, and add notes
+- Divides applicants evenly between Vaishakh, Robin, Aleena, and Mrudul
+- Lets reviewers filter applicants, shortlist, waitlist, reject, and score
 - Keeps the real student data out of the GitHub repo
 
 ## Local Development

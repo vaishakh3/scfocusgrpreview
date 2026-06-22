@@ -23,6 +23,7 @@ type ApplicantRow = {
   volunteering_experience: string | null;
   linkedin_url: string | null;
   data_quality_flags: string[] | null;
+  assigned_reviewer_id?: string | null;
 };
 
 type ReviewRow = {
@@ -30,7 +31,6 @@ type ReviewRow = {
   reviewer_id: string;
   decision: Decision;
   score: number | null;
-  notes: string | null;
   updated_at: string | null;
 };
 
@@ -64,6 +64,7 @@ function mapApplicant(row: ApplicantRow): Applicant {
     volunteeringExperience: row.volunteering_experience,
     linkedinUrl: row.linkedin_url,
     dataQualityFlags: row.data_quality_flags || [],
+    assignedReviewerId: row.assigned_reviewer_id || null,
   };
 }
 
@@ -73,9 +74,21 @@ function mapReview(row: ReviewRow): Review {
     reviewerId: row.reviewer_id,
     decision: row.decision,
     score: row.score,
-    notes: row.notes,
     updatedAt: row.updated_at,
   };
+}
+
+function assignApplicantsEvenly(applicants: Applicant[], reviewers: Reviewer[]) {
+  const queueReviewers = reviewers.filter((reviewer) => reviewer.id !== "admin");
+
+  if (!queueReviewers.length) {
+    return applicants;
+  }
+
+  return applicants.map((applicant, index) => ({
+    ...applicant,
+    assignedReviewerId: applicant.assignedReviewerId || queueReviewers[index % queueReviewers.length].id,
+  }));
 }
 
 function getPrivateApplicants() {
@@ -87,7 +100,9 @@ function getPrivateApplicants() {
 
   try {
     const parsed = JSON.parse(fs.readFileSync(filePath, "utf8")) as PrivateApplicantsFile;
-    const applicants = Array.isArray(parsed.applicants) ? parsed.applicants.map(mapApplicant) : [];
+    const applicants = Array.isArray(parsed.applicants)
+      ? assignApplicantsEvenly(parsed.applicants.map(mapApplicant), sampleReviewers)
+      : [];
     return applicants.length ? applicants : null;
   } catch {
     return null;
@@ -113,11 +128,11 @@ export async function getBootstrapPayload(): Promise<BootstrapPayload> {
     supabase
       .from("sfg_applicants")
       .select(
-        "id, source_row, submitted_at, name, email, phone, branch, year_level, college, interest_statement, volunteering_experience, linkedin_url, data_quality_flags",
+        "id, source_row, submitted_at, name, email, phone, branch, year_level, college, interest_statement, volunteering_experience, linkedin_url, data_quality_flags, assigned_reviewer_id",
       )
       .order("submitted_at", { ascending: true, nullsFirst: false })
       .order("id", { ascending: true }),
-    supabase.from("sfg_reviews").select("applicant_id, reviewer_id, decision, score, notes, updated_at"),
+    supabase.from("sfg_reviews").select("applicant_id, reviewer_id, decision, score, updated_at"),
   ]);
 
   if (reviewersResult.error) {
@@ -139,7 +154,7 @@ export async function getBootstrapPayload(): Promise<BootstrapPayload> {
   return {
     mode: "supabase",
     reviewers,
-    applicants: (applicantsResult.data || []).map(mapApplicant),
+    applicants: assignApplicantsEvenly((applicantsResult.data || []).map(mapApplicant), reviewers),
     reviews: (reviewsResult.data || []).map(mapReview),
   };
 }
@@ -149,7 +164,6 @@ export async function saveReview(input: {
   reviewerId: string;
   decision: Decision;
   score: number | null;
-  notes: string | null;
   clear?: boolean;
 }) {
   const supabase = getSupabaseAdmin();
@@ -177,13 +191,12 @@ export async function saveReview(input: {
     reviewer_id: input.reviewerId,
     decision: input.decision,
     score: input.score,
-    notes: input.notes,
   };
 
   const { data, error } = await supabase
     .from("sfg_reviews")
     .upsert(payload, { onConflict: "applicant_id,reviewer_id" })
-    .select("applicant_id, reviewer_id, decision, score, notes, updated_at")
+    .select("applicant_id, reviewer_id, decision, score, updated_at")
     .single();
 
   if (error) {

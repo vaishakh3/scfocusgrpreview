@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
       reviewerId?: string;
       decision?: Decision;
       score?: number | null;
-      notes?: string | null;
       clear?: boolean;
     };
 
@@ -31,7 +30,6 @@ export async function POST(request: NextRequest) {
       reviewerId: body.reviewerId,
       decision: body.decision || "pending",
       score,
-      notes: body.notes?.trim() || null,
       clear: body.clear,
     });
 

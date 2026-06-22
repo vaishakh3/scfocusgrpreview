@@ -1,10 +1,11 @@
 import type { Applicant, Reviewer } from "@/lib/types";
 
 export const sampleReviewers: Reviewer[] = [
-  { id: "chapter-team", name: "Chapter Team" },
-  { id: "reviewer-1", name: "Reviewer 1" },
-  { id: "reviewer-2", name: "Reviewer 2" },
-  { id: "reviewer-3", name: "Reviewer 3" },
+  { id: "admin", name: "Admin" },
+  { id: "vaishakh", name: "Vaishakh" },
+  { id: "robin", name: "Robin" },
+  { id: "aleena", name: "Aleena" },
+  { id: "mrudul", name: "Mrudul" },
 ];
 
 export const sampleApplicants: Applicant[] = [
@@ -24,6 +25,7 @@ export const sampleApplicants: Applicant[] = [
       "Student branch web team member. Helped coordinate technical workshops and wrote post-event reports.",
     linkedinUrl: "https://www.linkedin.com/in/sample-applicant-001",
     dataQualityFlags: [],
+    assignedReviewerId: "vaishakh",
   },
   {
     id: "sample-002",
@@ -41,6 +43,7 @@ export const sampleApplicants: Applicant[] = [
       "Volunteered for an IEEE technical event and assisted with registration, venue coordination, and participant support.",
     linkedinUrl: "https://www.linkedin.com/in/sample-applicant-002",
     dataQualityFlags: [],
+    assignedReviewerId: "robin",
   },
   {
     id: "sample-003",
@@ -58,6 +61,7 @@ export const sampleApplicants: Applicant[] = [
       "Documentation lead for a student association and content contributor for multiple technical events.",
     linkedinUrl: "https://www.linkedin.com/in/sample-applicant-003",
     dataQualityFlags: [],
+    assignedReviewerId: "aleena",
   },
   {
     id: "sample-004",
@@ -75,6 +79,7 @@ export const sampleApplicants: Applicant[] = [
       "Technical lead in a campus club and active participant in hackathons and hardware prototyping events.",
     linkedinUrl: "https://www.linkedin.com/in/sample-applicant-004",
     dataQualityFlags: [],
+    assignedReviewerId: "mrudul",
   },
   {
     id: "sample-005",
@@ -91,6 +96,7 @@ export const sampleApplicants: Applicant[] = [
     volunteeringExperience: "No previous volunteering experience yet.",
     linkedinUrl: null,
     dataQualityFlags: ["invalid_email"],
+    assignedReviewerId: "vaishakh",
   },
   {
     id: "sample-006",
@@ -108,5 +114,6 @@ export const sampleApplicants: Applicant[] = [
       "Volunteered for startup and technology summits, and served on a campus creative content team.",
     linkedinUrl: "https://www.linkedin.com/in/sample-applicant-006",
     dataQualityFlags: [],
+    assignedReviewerId: "robin",
   },
 ];

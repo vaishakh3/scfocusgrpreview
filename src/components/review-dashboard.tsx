@@ -100,10 +100,9 @@ export function ReviewDashboard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [draftState, setDraftState] = useState<{ key: string; score: number | null; notes: string }>({
+  const [draftScoreState, setDraftScoreState] = useState<{ key: string; score: number | null }>({
     key: "",
     score: null,
-    notes: "",
   });
 
   const loadData = useCallback(async () => {
@@ -120,7 +119,7 @@ export function ReviewDashboard() {
       }
 
       const bootstrap = data as BootstrapPayload;
-      const initialReviews = bootstrap.mode === "sample" ? loadSampleReviews() : bootstrap.reviews;
+      const initialReviews = bootstrap.mode !== "supabase" ? loadSampleReviews() : bootstrap.reviews;
       const storedReviewer = window.localStorage.getItem(REVIEWER_STORAGE_KEY) || "";
       const reviewer = bootstrap.reviewers.find((item) => item.id === storedReviewer) || bootstrap.reviewers[0];
 
@@ -175,10 +174,22 @@ export function ReviewDashboard() {
     return Array.from(new Set(sortedApplicants.map((applicant) => applicant.yearLevel).filter(Boolean) as string[]));
   }, [sortedApplicants]);
 
+  const reviewerNameById = useMemo(() => {
+    return new Map((payload?.reviewers || []).map((reviewer) => [reviewer.id, reviewer.name]));
+  }, [payload?.reviewers]);
+
+  const assignedApplicants = useMemo(() => {
+    if (selectedReviewerId === "admin") {
+      return sortedApplicants;
+    }
+
+    return sortedApplicants.filter((applicant) => applicant.assignedReviewerId === selectedReviewerId);
+  }, [selectedReviewerId, sortedApplicants]);
+
   const filteredApplicants = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return sortedApplicants.filter((applicant) => {
+    return assignedApplicants.filter((applicant) => {
       const review = reviewLookup.get(reviewKey(selectedReviewerId, applicant.id));
       const decision = statusOf(review);
 
@@ -196,7 +207,7 @@ export function ReviewDashboard() {
 
       return true;
     });
-  }, [query, reviewLookup, selectedReviewerId, sortedApplicants, statusFilter, yearFilter]);
+  }, [assignedApplicants, query, reviewLookup, selectedReviewerId, statusFilter, yearFilter]);
 
   const activeApplicantId = filteredApplicants.some((applicant) => applicant.id === selectedApplicantId)
     ? selectedApplicantId
@@ -211,17 +222,11 @@ export function ReviewDashboard() {
     : undefined;
 
   const activeReviewKey = selectedApplicant ? reviewKey(selectedReviewerId, selectedApplicant.id) : "";
-  const activeDraft =
-    draftState.key === activeReviewKey
-      ? draftState
-      : {
-          key: activeReviewKey,
-          score: selectedReview?.score ?? null,
-          notes: selectedReview?.notes || "",
-        };
+  const activeDraftScore =
+    draftScoreState.key === activeReviewKey ? draftScoreState.score : selectedReview?.score ?? null;
 
   const stats = useMemo(() => {
-    return sortedApplicants.reduce(
+    return assignedApplicants.reduce(
       (accumulator, applicant) => {
         const review = reviewLookup.get(reviewKey(selectedReviewerId, applicant.id));
         const decision = statusOf(review);
@@ -231,7 +236,7 @@ export function ReviewDashboard() {
       },
       { total: 0, pending: 0, shortlisted: 0, waitlist: 0, rejected: 0 },
     );
-  }, [reviewLookup, selectedReviewerId, sortedApplicants]);
+  }, [assignedApplicants, reviewLookup, selectedReviewerId]);
 
   const selectedIndex = selectedApplicant
     ? filteredApplicants.findIndex((applicant) => applicant.id === selectedApplicant.id) + 1
@@ -264,8 +269,7 @@ export function ReviewDashboard() {
       applicantId: selectedApplicant.id,
       reviewerId: selectedReviewerId,
       decision,
-      score: activeDraft.score,
-      notes: activeDraft.notes.trim() || null,
+      score: activeDraftScore,
       updatedAt: new Date().toISOString(),
     };
 
@@ -276,7 +280,7 @@ export function ReviewDashboard() {
       if (payload.mode !== "supabase") {
         replaceReview(clear ? null : nextReview, selectedReviewerId, selectedApplicant.id);
         if (clear) {
-          setDraftState({ key: activeReviewKey, score: null, notes: "" });
+          setDraftScoreState({ key: activeReviewKey, score: null });
         }
         return;
       }
@@ -290,8 +294,7 @@ export function ReviewDashboard() {
           applicantId: selectedApplicant.id,
           reviewerId: selectedReviewerId,
           decision,
-          score: activeDraft.score,
-          notes: activeDraft.notes,
+          score: activeDraftScore,
           clear,
         }),
       });
@@ -304,7 +307,7 @@ export function ReviewDashboard() {
 
       replaceReview(result.review || null, selectedReviewerId, selectedApplicant.id);
       if (clear) {
-        setDraftState({ key: activeReviewKey, score: null, notes: "" });
+        setDraftScoreState({ key: activeReviewKey, score: null });
       }
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to save review.");
@@ -427,7 +430,7 @@ export function ReviewDashboard() {
 
           <div className="queue-meta">
             <span>{filteredApplicants.length} shown</span>
-            <span>{stats.total} applicants</span>
+            <span>{selectedReviewerId === "admin" ? `${stats.total} applicants` : `${stats.total} assigned`}</span>
           </div>
 
           <div className="applicant-list">
@@ -448,7 +451,11 @@ export function ReviewDashboard() {
                   <span className="row-subline">{applicant.college || applicant.branch || "No college listed"}</span>
                   <span className="row-meta">
                     <span>{applicant.yearLevel || "Year unknown"}</span>
-                    <span>{decisionMeta[decision].label}</span>
+                    <span>
+                      {selectedReviewerId === "admin"
+                        ? reviewerNameById.get(applicant.assignedReviewerId || "") || "Unassigned"
+                        : decisionMeta[decision].label}
+                    </span>
                   </span>
                 </button>
               );
@@ -545,41 +552,36 @@ export function ReviewDashboard() {
                   <span className="meta-label">Submitted</span>
                   <p>{formatDate(selectedApplicant.submittedAt)}</p>
                 </div>
+                <div>
+                  <span className="meta-label">Assigned</span>
+                  <p>{reviewerNameById.get(selectedApplicant.assignedReviewerId || "") || "-"}</p>
+                </div>
               </section>
 
               <section className="review-editor">
                 <div className="score-control">
                   <div>
                     <span className="meta-label">Score</span>
-                  <strong>{activeDraft.score ? `${activeDraft.score}/5` : "No score"}</strong>
+                    <strong>{activeDraftScore ? `${activeDraftScore}/5` : "No score"}</strong>
                   </div>
                   <input
                     aria-label="Review score"
                     max="5"
                     min="1"
                     onChange={(event) =>
-                      setDraftState({ ...activeDraft, score: Number(event.target.value) })
+                      setDraftScoreState({ key: activeReviewKey, score: Number(event.target.value) })
                     }
                     type="range"
-                    value={activeDraft.score || 3}
+                    value={activeDraftScore || 3}
                   />
                   <button
                     className="text-button"
-                    onClick={() => setDraftState({ ...activeDraft, score: null })}
+                    onClick={() => setDraftScoreState({ key: activeReviewKey, score: null })}
                     type="button"
                   >
                     Clear score
                   </button>
                 </div>
-
-                <label className="notes-field">
-                  <span className="meta-label">Reviewer notes</span>
-                  <textarea
-                    value={activeDraft.notes}
-                    onChange={(event) => setDraftState({ ...activeDraft, notes: event.target.value })}
-                    rows={4}
-                  />
-                </label>
 
                 <button
                   className="save-button"
