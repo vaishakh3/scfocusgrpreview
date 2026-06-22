@@ -8,7 +8,6 @@ Review dashboard for IEEE Sensors Council Kerala Chapter Software Focus Group ap
 - Falls back to anonymized sample data when Supabase env vars are not set
 - Lets reviewers filter applicants, shortlist, waitlist, reject, score, and add notes
 - Keeps the real student data out of the GitHub repo
-- Supports an optional shared access code for deployed review links
 
 ## Local Development
 
@@ -37,12 +36,6 @@ Required Vercel env vars:
 ```bash
 SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
-```
-
-Optional:
-
-```bash
-REVIEW_ACCESS_CODE=...
 ```
 
 The dashboard never exposes the Supabase service role key to the browser. All reads and writes go through `/api/bootstrap` and `/api/reviews`.

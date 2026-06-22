@@ -1,14 +1,8 @@
-import { accessDeniedResponse, isAccessAllowed } from "@/lib/access";
 import { getBootstrapPayload } from "@/lib/review-data";
-import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
-export async function GET(request: NextRequest) {
-  if (!isAccessAllowed(request)) {
-    return accessDeniedResponse();
-  }
-
+export async function GET() {
   try {
     return Response.json(await getBootstrapPayload());
   } catch (error) {

@@ -9,15 +9,13 @@ import {
   RotateCcw,
   Save,
   Search,
-  ShieldCheck,
   XCircle,
 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Applicant, BootstrapPayload, Decision, Review } from "@/lib/types";
 
 type StatusFilter = Decision | "all";
 
-const ACCESS_STORAGE_KEY = "scfocusgrpreview:access-code";
 const REVIEWER_STORAGE_KEY = "scfocusgrpreview:reviewer";
 const SAMPLE_REVIEWS_STORAGE_KEY = "scfocusgrpreview:sample-reviews";
 
@@ -99,13 +97,6 @@ export function ReviewDashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [yearFilter, setYearFilter] = useState("all");
   const [query, setQuery] = useState("");
-  const [accessCode, setAccessCode] = useState(() =>
-    typeof window === "undefined" ? "" : window.localStorage.getItem(ACCESS_STORAGE_KEY) || "",
-  );
-  const [accessInput, setAccessInput] = useState(() =>
-    typeof window === "undefined" ? "" : window.localStorage.getItem(ACCESS_STORAGE_KEY) || "",
-  );
-  const [accessRequired, setAccessRequired] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -115,21 +106,12 @@ export function ReviewDashboard() {
     notes: "",
   });
 
-  const loadData = useCallback(async (code: string, attemptedCode = false) => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch("/api/bootstrap", {
-        headers: code ? { "x-review-access-code": code } : undefined,
-      });
-
-      if (response.status === 401) {
-        setAccessRequired(true);
-        setError(attemptedCode ? "That access code did not work." : "");
-        setLoading(false);
-        return;
-      }
+      const response = await fetch("/api/bootstrap");
 
       const data = (await response.json()) as BootstrapPayload | { error?: string };
 
@@ -146,7 +128,6 @@ export function ReviewDashboard() {
       setReviews(initialReviews);
       setSelectedReviewerId(reviewer?.id || "");
       setSelectedApplicantId(bootstrap.applicants[0]?.id || "");
-      setAccessRequired(false);
       setError("");
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load review data.");
@@ -156,9 +137,8 @@ export function ReviewDashboard() {
   }, []);
 
   useEffect(() => {
-    const storedCode = window.localStorage.getItem(ACCESS_STORAGE_KEY) || "";
     const timer = window.setTimeout(() => {
-      void loadData(storedCode);
+      void loadData();
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -305,7 +285,6 @@ export function ReviewDashboard() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(accessCode ? { "x-review-access-code": accessCode } : {}),
         },
         body: JSON.stringify({
           applicantId: selectedApplicant.id,
@@ -334,14 +313,6 @@ export function ReviewDashboard() {
     }
   }
 
-  async function handleAccessSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const nextCode = accessInput.trim();
-    setAccessCode(nextCode);
-    window.localStorage.setItem(ACCESS_STORAGE_KEY, nextCode);
-    await loadData(nextCode, true);
-  }
-
   const modeLabel = payload?.mode === "supabase" ? "Supabase" : payload?.mode === "private" ? "Private" : "Sample";
   const currentDecision = statusOf(selectedReview);
   const DecisionIcon = decisionMeta[currentDecision].icon;
@@ -355,45 +326,17 @@ export function ReviewDashboard() {
     );
   }
 
-  if (accessRequired) {
-    return (
-      <main className="access-screen">
-        <form className="access-panel" onSubmit={handleAccessSubmit}>
-          <ShieldCheck size={28} aria-hidden="true" />
-          <div>
-            <p className="eyebrow">Reviewer access</p>
-            <h1>Software Focus Group Review</h1>
-          </div>
-          <label className="field-stack">
-            <span>Access code</span>
-            <input
-              autoFocus
-              value={accessInput}
-              onChange={(event) => setAccessInput(event.target.value)}
-              type="password"
-              autoComplete="current-password"
-            />
-          </label>
-          {error ? <p className="form-error">{error}</p> : null}
-          <button className="primary-action" type="submit">
-            Continue
-          </button>
-        </form>
-      </main>
-    );
-  }
-
   if (error && !payload) {
     return (
       <main className="error-screen">
-        <div className="access-panel">
+        <div className="setup-panel">
           <AlertCircle size={28} aria-hidden="true" />
           <div>
             <p className="eyebrow">Setup</p>
             <h1>Review data unavailable</h1>
           </div>
           <p className="panel-copy">{error}</p>
-          <button className="primary-action" onClick={() => void loadData(accessCode)} type="button">
+          <button className="primary-action" onClick={() => void loadData()} type="button">
             Retry
           </button>
         </div>

@@ -1,4 +1,3 @@
-import { accessDeniedResponse, isAccessAllowed } from "@/lib/access";
 import { saveReview } from "@/lib/review-data";
 import type { Decision } from "@/lib/types";
 import type { NextRequest } from "next/server";
@@ -8,10 +7,6 @@ export const runtime = "nodejs";
 const decisions = new Set<Decision>(["pending", "shortlisted", "waitlist", "rejected"]);
 
 export async function POST(request: NextRequest) {
-  if (!isAccessAllowed(request)) {
-    return accessDeniedResponse();
-  }
-
   try {
     const body = (await request.json()) as {
       applicantId?: string;

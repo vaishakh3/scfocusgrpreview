@@ -487,8 +487,7 @@ textarea:focus {
   padding: 0;
 }
 
-.inline-error,
-.form-error {
+.inline-error {
   color: #ffd0c9;
 }
 
@@ -614,7 +613,6 @@ textarea:focus {
 }
 
 .loading-screen,
-.access-screen,
 .error-screen {
   min-height: 100vh;
   display: grid;
@@ -627,7 +625,7 @@ textarea:focus {
   color: var(--muted-strong);
 }
 
-.access-panel {
+.setup-panel {
   width: min(430px, 100%);
   display: grid;
   gap: 18px;
@@ -637,7 +635,7 @@ textarea:focus {
   background: var(--panel);
 }
 
-.access-panel h1 {
+.setup-panel h1 {
   margin-top: 8px;
   line-height: 1.05;
   font-size: clamp(2rem, 6vw, 3rem);
