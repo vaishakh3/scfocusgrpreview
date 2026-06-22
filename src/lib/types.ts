@@ -1,6 +1,6 @@
 export type Decision = "pending" | "shortlisted" | "waitlist" | "rejected";
 
-export type DataMode = "sample" | "supabase";
+export type DataMode = "sample" | "private" | "supabase";
 
 export type Applicant = {
   id: string;

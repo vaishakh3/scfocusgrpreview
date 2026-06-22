@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { sampleApplicants, sampleReviewers } from "@/lib/sample-data";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { Applicant, BootstrapPayload, Decision, Review, Reviewer } from "@/lib/types";
@@ -30,6 +32,10 @@ type ReviewRow = {
   score: number | null;
   notes: string | null;
   updated_at: string | null;
+};
+
+type PrivateApplicantsFile = {
+  applicants?: ApplicantRow[];
 };
 
 export function hasSupabaseConfig() {
@@ -72,13 +78,31 @@ function mapReview(row: ReviewRow): Review {
   };
 }
 
+function getPrivateApplicants() {
+  const filePath = path.join(process.cwd(), "private", "applicants.json");
+
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, "utf8")) as PrivateApplicantsFile;
+    const applicants = Array.isArray(parsed.applicants) ? parsed.applicants.map(mapApplicant) : [];
+    return applicants.length ? applicants : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getBootstrapPayload(): Promise<BootstrapPayload> {
   const supabase = getSupabaseAdmin();
 
   if (!supabase) {
+    const privateApplicants = getPrivateApplicants();
+
     return {
-      mode: "sample",
-      applicants: sampleApplicants,
+      mode: privateApplicants ? "private" : "sample",
+      applicants: privateApplicants || sampleApplicants,
       reviewers: sampleReviewers,
       reviews: [],
     };

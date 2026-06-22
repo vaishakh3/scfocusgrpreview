@@ -267,7 +267,7 @@ export function ReviewDashboard() {
         nextReviews.push(nextReview);
       }
 
-      if (payload?.mode === "sample") {
+      if (payload?.mode !== "supabase") {
         saveSampleReviews(nextReviews);
       }
 
@@ -293,7 +293,7 @@ export function ReviewDashboard() {
     setError("");
 
     try {
-      if (payload.mode === "sample") {
+      if (payload.mode !== "supabase") {
         replaceReview(clear ? null : nextReview, selectedReviewerId, selectedApplicant.id);
         if (clear) {
           setDraftState({ key: activeReviewKey, score: null, notes: "" });
@@ -342,7 +342,7 @@ export function ReviewDashboard() {
     await loadData(nextCode, true);
   }
 
-  const modeLabel = payload?.mode === "supabase" ? "Supabase" : "Sample";
+  const modeLabel = payload?.mode === "supabase" ? "Supabase" : payload?.mode === "private" ? "Private" : "Sample";
   const currentDecision = statusOf(selectedReview);
   const DecisionIcon = decisionMeta[currentDecision].icon;
 

@@ -20,6 +20,14 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Without Supabase env vars, the app runs in sample mode and saves sample reviews in browser local storage.
 
+For local review with real names before Supabase is configured, place normalized private data at:
+
+```text
+private/applicants.json
+```
+
+That folder is gitignored so student data does not get pushed.
+
 ## Supabase Setup
 
 Run `supabase/schema.sql` in the Supabase SQL editor, then run the private seed SQL generated from the form CSV.
